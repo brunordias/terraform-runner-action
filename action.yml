@@ -1,0 +1,56 @@
+name: 'Terraform Runner Action'
+description: 'Executes Terraform commands inside a Docker container using GHCR.'
+author: 'brunordias'
+
+inputs:
+  tf_mode:
+    description: 'Terraform execution mode (plan, apply or destroy).'
+    required: true
+    default: 'plan'
+
+  tf_config_dir:
+    description: 'Directory containing Terraform configuration files.'
+    required: true
+    default: '.'
+
+  terraform_version:
+    description: 'Version of Terraform to use.'
+    required: false
+    default: 'latest'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Create Docker container with environment variables
+      shell: bash
+      run: |
+        ENV_VARS=""
+        for VAR in $(env | grep -E '^[A-Z_][A-Z0-9_]*=' | cut -d= -f1); do
+          case "$VAR" in
+            TF_MODE|GITHUB_TOKEN|GITHUB_REPOSITORY|GITHUB_PR_NUMBER|GITHUB_RUN_ID|GITHUB_SHA|TFENV_TERRAFORM_VERSION) continue ;;
+          esac
+          ENV_VARS="$ENV_VARS -e $VAR=\"${!VAR}\""
+        done
+        eval docker create --name terraform-runner \
+          -e TF_MODE="${{ inputs.tf_mode }}" \
+          -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+          -e GITHUB_REPOSITORY="${{ github.repository }}" \
+          -e GITHUB_PR_NUMBER="${{ github.event.number }}" \
+          -e GITHUB_RUN_ID="${{ github.run_id }}" \
+          -e GITHUB_SHA="${{ github.sha }}" \
+          -e TFENV_TERRAFORM_VERSION="${{ inputs.terraform_version }}" \
+          $ENV_VARS \
+          ghcr.io/brunordias/terraform-runner:latest
+
+    - name: Copy Terraform configuration directory to container
+      shell: bash
+      run: |
+        docker cp "${{ inputs.tf_config_dir }}/." terraform-runner:/terraform/
+
+    - name: Start Terraform container
+      shell: bash
+      run: |
+        docker start -a terraform-runner
