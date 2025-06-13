@@ -3,6 +3,10 @@ description: 'Executes Terraform commands inside a Docker container using GHCR.'
 author: 'brunordias'
 
 inputs:
+  github_token:
+    description: 'GitHub token used to interact with the API (e.g., commenting, releases)'
+    required: true
+
   tf_mode:
     description: 'Terraform execution mode (plan, apply or destroy).'
     required: true
@@ -36,7 +40,7 @@ runs:
         done
         eval docker create --name terraform-runner \
           -e TF_MODE="${{ inputs.tf_mode }}" \
-          -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+          -e GITHUB_TOKEN="${{ inputs.github_token }}" \
           -e GITHUB_REPOSITORY="${{ github.repository }}" \
           -e GITHUB_PR_NUMBER="${{ github.event.number }}" \
           -e GITHUB_RUN_ID="${{ github.run_id }}" \
