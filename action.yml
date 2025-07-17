@@ -22,6 +22,10 @@ inputs:
     required: false
     default: 'latest'
 
+  tf_variables_dir:
+    description: 'Directory containing Terraform variables files.'
+    required: false
+
 runs:
   using: 'composite'
   steps:
@@ -53,6 +57,16 @@ runs:
       shell: bash
       run: |
         docker cp "${{ inputs.tf_config_dir }}/." terraform-runner:/terraform/
+
+    - name: Copy Terraform variables directory to container if set
+      shell: bash
+      run: |
+        if [[ -n "${{ inputs.tf_variables_dir }}" && -d "${{ inputs.tf_variables_dir }}" ]]; then
+          for file in "${{ inputs.tf_variables_dir }}"/*.tfvars "${{ inputs.tf_variables_dir }}"/*.tfvars.json; do
+            [ -e "$file" ] || continue
+            docker cp "$file" terraform-runner:/terraform/
+          done
+        fi
 
     - name: Start Terraform container
       shell: bash
