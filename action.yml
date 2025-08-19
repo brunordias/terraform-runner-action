@@ -30,6 +30,10 @@ inputs:
     description: 'Directory containing Terraform override files.'
     required: false
 
+  tf_workspace_id:
+    description: 'Terraform workspace ID to use.'
+    required: false
+
 runs:
   using: 'composite'
   steps:
@@ -42,7 +46,7 @@ runs:
         ENV_VARS=""
         for VAR in $(env | grep -E '^[A-Z_][A-Z0-9_]*=' | cut -d= -f1); do
           case "$VAR" in
-            TF_MODE|GITHUB_TOKEN|GITHUB_REPOSITORY|GITHUB_PR_NUMBER|GITHUB_RUN_ID|GITHUB_SHA|TFENV_TERRAFORM_VERSION) continue ;;
+            TF_MODE|GITHUB_TOKEN|GITHUB_REPOSITORY|GITHUB_PR_NUMBER|GITHUB_RUN_ID|GITHUB_SHA|TFENV_TERRAFORM_VERSION|TF_WORKSPACE_ID) continue ;;
           esac
           ENV_VARS="$ENV_VARS -e $VAR=\"${!VAR}\""
         done
@@ -54,6 +58,7 @@ runs:
           -e GITHUB_RUN_ID="${{ github.run_id }}" \
           -e GITHUB_SHA="${{ github.sha }}" \
           -e TFENV_TERRAFORM_VERSION="${{ inputs.terraform_version }}" \
+          -e TF_WORKSPACE_ID="${{ inputs.tf_workspace_id }}" \
           $ENV_VARS \
           ghcr.io/brunordias/terraform-runner:latest
 
